@@ -12,7 +12,6 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { NetworkSwitcher } from '@/components/layout/wallet/NetworkSwitcher';
 import { useWalletActions } from '@/hooks/wallet/useWalletActions';
 import { useWalletBalance } from '@/hooks/wallet/useWalletBalance';
 
@@ -39,7 +38,7 @@ const WalletConnectButton: React.FC = () => {
       <div className="flex items-center">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg px-5 py-3 text-base font-semibold text-white transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer outline-none">
+            <button className="flex items-center gap-2.5 bg-purple-600 hover:bg-blue-700 rounded-lg px-5 py-3 text-base font-semibold text-white transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer outline-none">
               <Wallet className="w-5 h-5" />
               {shortAddress}
             </button>
@@ -52,7 +51,7 @@ const WalletConnectButton: React.FC = () => {
           >
             {/* Address row */}
             <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700/40">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center flex-shrink-0">
                 <Wallet className="w-3.5 h-3.5 text-white" />
               </div>
               <span className="text-slate-100 font-medium text-sm flex-1">{shortAddress}</span>
@@ -84,7 +83,9 @@ const WalletConnectButton: React.FC = () => {
                 </div>
               </div>
               <span className="text-2xl font-bold text-slate-100">
-                {usdcBalance === null ? '—' : `$${parseFloat(usdcBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                {usdcBalance === null
+                  ? '—'
+                  : `$${parseFloat(usdcBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </span>
             </div>
 
@@ -100,8 +101,6 @@ const WalletConnectButton: React.FC = () => {
             </div>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        <NetworkSwitcher />
       </div>
     );
   }
@@ -110,7 +109,7 @@ const WalletConnectButton: React.FC = () => {
     <div className="flex gap-2">
       <button
         onClick={login}
-        className="flex items-center gap-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg md:px-5 px-3 md:py-3 py-1 text-base font-semibold text-white transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer"
+        className="flex items-center gap-2.5 bg-purple-600 hover:bg-blue-700 rounded-lg md:px-5 px-3 md:py-3 py-1 text-base font-semibold text-white transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer"
       >
         <Wallet className="w-5 h-5" />
         Connect wallet
@@ -121,9 +120,25 @@ const WalletConnectButton: React.FC = () => {
           className="flex items-center justify-center w-12 h-12 bg-slate-800 hover:bg-slate-700 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
           title="Monad Testnet"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="12" fill="#836EF9"/>
-            <text x="12" y="16" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold" fontFamily="sans-serif">M</text>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle cx="12" cy="12" r="12" fill="#836EF9" />
+            <text
+              x="12"
+              y="16"
+              textAnchor="middle"
+              fill="white"
+              fontSize="11"
+              fontWeight="bold"
+              fontFamily="sans-serif"
+            >
+              M
+            </text>
           </svg>
         </button>
         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
