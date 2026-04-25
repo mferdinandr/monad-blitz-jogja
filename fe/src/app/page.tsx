@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { sdk } from '@farcaster/miniapp-sdk';
 
 const features = [
@@ -45,8 +44,7 @@ export default function LandingPage() {
       <nav className="border-b border-white/10 px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Image src="/tethra-polos.png" alt="Tethra" width={32} height={32} />
-            <span className="font-bold text-lg">Tethra</span>
+            <span className="font-bold text-lg">MonadBlitz</span>
           </div>
           <Link
             href="/trade"
@@ -121,8 +119,7 @@ export default function LandingPage() {
       <footer className="border-t border-white/10 py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Image src="/tethra-polos.png" alt="Tethra" width={20} height={20} />
-            <span className="text-gray-400 text-sm">© 2025 Tethra. All rights reserved.</span>
+            <span className="text-gray-400 text-sm">© 2025 MonadBlitz. All rights reserved.</span>
           </div>
           <div className="flex gap-6 text-gray-400 text-sm">
             <a href="https://x.com/TethraTrade" target="_blank" className="hover:text-white transition-colors">X</a>

@@ -15,7 +15,7 @@ export const minikitConfig = {
   },
   miniapp: {
     version: "1",
-    name: "Tethra Trade",
+    name: "MonadBlitz",
     subtitle: "Think it. Tap it. Trade it",
     description: "One tap. Zero pop-ups. Instant fills.",
     screenshotUrls: [
@@ -32,7 +32,7 @@ export const minikitConfig = {
     tags: ["trade", "tap-to-trade", "gasless", "defi"],
     heroImageUrl: `${ROOT_URL}/homepage/og-banner.png`,
     tagline: "Think it. Tap it. Trade it.",
-    ogTitle: "Tethra Trade",
+    ogTitle: "MonadBlitz",
     ogDescription: "One tap. Zero pop-ups. Instant fills.",
     ogImageUrl: `${ROOT_URL}/homepage/og-banner.png`,
   },

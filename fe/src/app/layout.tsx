@@ -93,8 +93,6 @@ export default function RootLayout({
       className={`${inter.variable} ${ibmPlexMono.variable}`}
     >
       <head>
-        <link rel="icon" href="/tethra-logo.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/tethra-logo.png" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
         <Providers>{children}</Providers>
