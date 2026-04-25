@@ -78,9 +78,9 @@ export const useWalletBalance = () => {
       );
     };
 
-    window.addEventListener('tethra:refreshBalance', scheduleRefreshes);
+    window.addEventListener('monad-blitz:refreshBalance', scheduleRefreshes);
     return () => {
-      window.removeEventListener('tethra:refreshBalance', scheduleRefreshes);
+      window.removeEventListener('monad-blitz:refreshBalance', scheduleRefreshes);
       clearRefreshTimeouts();
     };
   }, [authenticated, user, fetchUsdcBalance]);

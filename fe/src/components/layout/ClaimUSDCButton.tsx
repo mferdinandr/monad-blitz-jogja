@@ -56,7 +56,7 @@ const ClaimUSDCButton: React.FC = () => {
       });
 
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('tethra:refreshBalance'));
+        window.dispatchEvent(new Event('monad-blitz:refreshBalance'));
       }
 
       if (txHash) {
@@ -77,7 +77,6 @@ const ClaimUSDCButton: React.FC = () => {
           );
         }, 500);
       }
-
     } catch (error: any) {
       let errorMessage = 'Failed to claim USDC from faucet';
       if (error?.message) {

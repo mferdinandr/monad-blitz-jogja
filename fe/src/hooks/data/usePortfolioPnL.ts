@@ -69,17 +69,14 @@ export const usePortfolioPnL = () => {
       const balance = await fetchBalance(address);
       if (balance !== null) setCurrentBalance(balance);
     };
-    window.addEventListener('tethra:refreshBalance', handler);
-    return () => window.removeEventListener('tethra:refreshBalance', handler);
+    window.addEventListener('monad-blitz:refreshBalance', handler);
+    return () => window.removeEventListener('monad-blitz:refreshBalance', handler);
   }, [address]);
 
   const initial = initialBalanceRef.current;
-  const pnlDollar =
-    currentBalance !== null && initial !== null ? currentBalance - initial : null;
+  const pnlDollar = currentBalance !== null && initial !== null ? currentBalance - initial : null;
   const pnlPercent =
-    pnlDollar !== null && initial !== null && initial !== 0
-      ? (pnlDollar / initial) * 100
-      : null;
+    pnlDollar !== null && initial !== null && initial !== 0 ? (pnlDollar / initial) * 100 : null;
 
   return {
     currentBalance,

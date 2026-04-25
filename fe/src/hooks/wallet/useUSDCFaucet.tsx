@@ -39,7 +39,7 @@ export const useUSDCFaucet = (options: UseUSDCFaucetOptions = {}) => {
       });
 
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('tethra:refreshBalance'));
+        window.dispatchEvent(new Event('monad-blitz:refreshBalance'));
       }
 
       if (options.onSuccess) {
@@ -65,10 +65,7 @@ export const useUSDCFaucet = (options: UseUSDCFaucetOptions = {}) => {
 
       return txHash;
     } catch (error: any) {
-      const msg =
-        error?.shortMessage ||
-        error?.message?.split('\n')[0] ||
-        'Failed to claim USDC';
+      const msg = error?.shortMessage || error?.message?.split('\n')[0] || 'Failed to claim USDC';
       toast.error(msg, { id: loadingToast });
     } finally {
       setIsClaiming(false);

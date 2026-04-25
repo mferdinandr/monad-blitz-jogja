@@ -9,12 +9,8 @@ import { useUSDCFaucet } from '@/hooks/wallet/useUSDCFaucet';
 
 export const WalletDialogContent: React.FC = () => {
   const { usdcBalance, refetchBalance, bumpBalance } = useWalletBalance();
-  const {
-    shortAddress,
-    handleCopyAddress,
-    handleViewExplorer,
-    handleDisconnect,
-  } = useWalletActions();
+  const { shortAddress, handleCopyAddress, handleViewExplorer, handleDisconnect } =
+    useWalletActions();
   const { isClaiming, handleClaimUSDC } = useUSDCFaucet({
     onSuccess: () => {
       bumpBalance(100);
@@ -26,7 +22,7 @@ export const WalletDialogContent: React.FC = () => {
       {/* Header Section */}
       <div className="px-6 py-5 border-b border-slate-700/50">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-slate-100">Tethra Wallet</h2>
+          <h2 className="text-lg font-bold text-slate-100">Wallet</h2>
           <DialogClose asChild>
             <button className="text-slate-400 hover:text-slate-200 transition-colors cursor-pointer">
               <X className="w-5 h-5" />

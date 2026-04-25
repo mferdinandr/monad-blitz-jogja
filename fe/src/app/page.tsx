@@ -7,15 +7,18 @@ import { sdk } from '@farcaster/miniapp-sdk';
 const features = [
   {
     title: 'Tap to Trade',
-    description: 'One tap to go long, one tap to go short. No complex setup — just pick your direction and you\'re in.',
+    description:
+      "One tap to go long, one tap to go short. No complex setup — just pick your direction and you're in.",
   },
   {
     title: 'Zero Gas Fees',
-    description: 'Our relayer wallet covers all transaction costs so you can focus on trading, not fees.',
+    description:
+      'Our relayer wallet covers all transaction costs so you can focus on trading, not fees.',
   },
   {
     title: 'Pyth Oracle',
-    description: 'Real-time, high-fidelity price feeds powered by Pyth Network for accurate market data.',
+    description:
+      'Real-time, high-fidelity price feeds powered by Pyth Network for accurate market data.',
   },
   {
     title: 'Account Abstraction',
@@ -58,11 +61,11 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-6 py-24 text-center">
         <h1 className="text-5xl md:text-7xl font-bold mb-6">
-          Trade Anything.{' '}
-          <span className="text-cyan-400">One Tap.</span>
+          Trade Anything. <span className="text-cyan-400">One Tap.</span>
         </h1>
         <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-10">
-          The simplest decentralized exchange — tap to trade, open positions, and earn rewards with zero gas fees.
+          The simplest decentralized exchange — tap to trade, open positions, and earn rewards with
+          zero gas fees.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
@@ -84,18 +87,24 @@ export default function LandingPage() {
       <section className="border-y border-white/10 py-4 overflow-hidden">
         <div className="flex gap-8 animate-marquee whitespace-nowrap">
           {[...markets, ...markets].map((m, i) => (
-            <span key={i} className="text-gray-400 text-sm font-mono">{m}/USDC</span>
+            <span key={i} className="text-gray-400 text-sm font-mono">
+              {m}/USDC
+            </span>
           ))}
         </div>
       </section>
 
       {/* Features */}
       <section id="features" className="max-w-6xl mx-auto px-6 py-24">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">Why Tethra?</h2>
-        <p className="text-gray-400 text-center mb-16">Built for traders who want speed, simplicity, and full control.</p>
+        <p className="text-gray-400 text-center mb-16">
+          Built for traders who want speed, simplicity, and full control.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((f) => (
-            <div key={f.title} className="border border-white/10 bg-white/5 p-6 hover:border-cyan-500/40 transition-colors">
+            <div
+              key={f.title}
+              className="border border-white/10 bg-white/5 p-6 hover:border-cyan-500/40 transition-colors"
+            >
               <h3 className="text-lg font-bold mb-2">{f.title}</h3>
               <p className="text-gray-400 text-sm leading-relaxed">{f.description}</p>
             </div>
@@ -121,18 +130,17 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <span className="text-gray-400 text-sm">© 2025 MonadBlitz. All rights reserved.</span>
           </div>
-          <div className="flex gap-6 text-gray-400 text-sm">
-            <a href="https://x.com/TethraTrade" target="_blank" className="hover:text-white transition-colors">X</a>
-            <a href="https://github.com/Tethra-Dex" target="_blank" className="hover:text-white transition-colors">GitHub</a>
-            <span className="hover:text-white transition-colors cursor-pointer">Docs</span>
-          </div>
         </div>
       </footer>
 
       <style jsx global>{`
         @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
         }
         .animate-marquee {
           animation: marquee 20s linear infinite;
