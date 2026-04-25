@@ -7,7 +7,7 @@ import {
   useAccount,
   usePublicClient,
 } from 'wagmi';
-import { createWalletClient, createPublicClient, http, maxUint256, keccak256, toBytes, parseUnits } from 'viem';
+import { createWalletClient, http, maxUint256, keccak256, toBytes, parseUnits } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { TAP_BET_MANAGER_ADDRESS, USDC_ADDRESS } from '@/config/contracts';
 import { useTapToTrade } from '@/features/trading/contexts/TapToTradeContext';
@@ -26,6 +26,21 @@ const TAP_BET_MANAGER_ABI = [
     type: 'function',
     name: 'placeBet',
     inputs: [
+      { name: 'symbol', type: 'bytes32' },
+      { name: 'targetPrice', type: 'uint256' },
+      { name: 'entryPrice', type: 'uint256' },
+      { name: 'collateral', type: 'uint256' },
+      { name: 'expiry', type: 'uint256' },
+      { name: 'expectedMultiplier', type: 'uint256' },
+    ],
+    outputs: [{ name: 'betId', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'placeBetFor',
+    inputs: [
+      { name: 'trader', type: 'address' },
       { name: 'symbol', type: 'bytes32' },
       { name: 'targetPrice', type: 'uint256' },
       { name: 'entryPrice', type: 'uint256' },
@@ -100,38 +115,15 @@ export function usePlaceBet() {
       setIsPlacing(true);
       try {
         const account = privateKeyToAccount(sessionKey.privateKey);
-        const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL;
-        const transport = http(rpcUrl);
-
-        const sessionPublicClient = createPublicClient({ chain: MONAD_TESTNET, transport });
+        const transport = http(process.env.NEXT_PUBLIC_RPC_URL);
         const sessionClient = createWalletClient({ account, chain: MONAD_TESTNET, transport });
 
-        // Approve USDC once if needed
-        const sessionAllowance = await sessionPublicClient.readContract({
-          address: USDC_ADDRESS,
-          abi: ERC20_ABI,
-          functionName: 'allowance',
-          args: [account.address, TAP_BET_MANAGER_ADDRESS],
-        });
-
-        if ((sessionAllowance as bigint) < collateral) {
-          setIsApproving(true);
-          const approveTx = await sessionClient.writeContract({
-            address: USDC_ADDRESS,
-            abi: ERC20_ABI,
-            functionName: 'approve',
-            args: [TAP_BET_MANAGER_ADDRESS, maxUint256],
-            gas: 100000n,
-          });
-          await sessionPublicClient.waitForTransactionReceipt({ hash: approveTx });
-          setIsApproving(false);
-        }
-
+        // Session key calls placeBetFor — USDC pulled from trader's wallet (already approved)
         const tx = await sessionClient.writeContract({
           address: TAP_BET_MANAGER_ADDRESS,
           abi: TAP_BET_MANAGER_ABI,
-          functionName: 'placeBet',
-          args: [symbolBytes32, params.targetPrice, entryPrice, collateral, expiry, BigInt(params.expectedMultiplier)],
+          functionName: 'placeBetFor',
+          args: [sessionKey.trader, symbolBytes32, params.targetPrice, entryPrice, collateral, expiry, BigInt(params.expectedMultiplier)],
           gas: 500000n,
         });
 

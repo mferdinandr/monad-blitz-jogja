@@ -157,18 +157,13 @@ router.post('/create', async (req: Request, res: Response) => {
     if (monReceipt.status === 'reverted') throw new Error('MON transfer reverted');
     logger.info('✅ MON sent', { monTxHash });
 
-    // Mint USDC directly to session key
-    const usdcTxHash = await mintUsdcFor(sessionKeyAddress as `0x${string}`);
-
     res.json({
       success: true,
       sessionKeyAddress,
       expiresAt,
       monTxHash,
-      usdcTxHash,
       funding: {
         mon: formatUnits(monAmount, 18),
-        usdc: process.env.SESSION_USDC_AMOUNT ?? '100',
       },
     });
   } catch (error: any) {

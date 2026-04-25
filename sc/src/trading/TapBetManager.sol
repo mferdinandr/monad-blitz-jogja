@@ -30,7 +30,7 @@ interface IMultiplierEngine {
  * @title TapBetManager
  * @notice Core bet lifecycle: place, settle wins (permissionless), settle expired bets.
  * @dev Users approve this contract for USDC. This contract pulls from user and sends to vault.
- *      Any address can call settleBetWin and earn a 0.5% finder fee.
+ *      Session keys can be authorized by traders to place bets on their behalf (no popup per bet).
  */
 contract TapBetManager is Ownable, ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
@@ -41,30 +41,33 @@ contract TapBetManager is Ownable, ReentrancyGuard, Pausable {
     struct Bet {
         uint256   betId;
         address   user;
-        bytes32   symbol;       // keccak256("BTC") etc.
-        uint256   targetPrice;  // 8-decimal unsigned
-        uint256   collateral;   // USDC, 6-decimal
-        uint256   multiplier;   // basis-100 (800 = 8x)
+        bytes32   symbol;
+        uint256   targetPrice;
+        uint256   collateral;
+        uint256   multiplier;
         Direction direction;
-        uint256   expiry;       // unix timestamp
+        uint256   expiry;
         BetStatus status;
         uint256   placedAt;
     }
 
     // ─── Storage ───────────────────────────────────────────────────────────────
 
-    mapping(uint256 => Bet)     public bets;
-    mapping(address => uint256[]) public userBets;
-    uint256[]                   public activeBetIds;
-    uint256                     public nextBetId;
+    mapping(uint256 => Bet)              public bets;
+    mapping(address => uint256[])        public userBets;
+    uint256[]                            public activeBetIds;
+    uint256                              public nextBetId;
 
-    ITapVault        public immutable vault;
-    IPriceAdapter    public immutable priceAdapter;
+    // trader => sessionKey => authorized
+    mapping(address => mapping(address => bool)) public authorizedSessionKeys;
+
+    ITapVault         public immutable vault;
+    IPriceAdapter     public immutable priceAdapter;
     IMultiplierEngine public immutable multiplierEngine;
-    IERC20           public immutable usdc;
+    IERC20            public immutable usdc;
 
-    uint256 public SETTLER_FEE_BPS = 50; // 0.5%
-    uint256 public constant MAX_MULTIPLIER_SLIPPAGE_BPS = 100; // 1% tolerance
+    uint256 public SETTLER_FEE_BPS = 50;
+    uint256 public constant MAX_MULTIPLIER_SLIPPAGE_BPS = 100;
     address public settler;
 
     // ─── Events ────────────────────────────────────────────────────────────────
@@ -88,6 +91,8 @@ contract TapBetManager is Ownable, ReentrancyGuard, Pausable {
     );
     event BetExpired(uint256 indexed betId, address indexed user);
     event SettlerFeeUpdated(uint256 newFeeBps);
+    event SessionKeyAuthorized(address indexed trader, address indexed sessionKey);
+    event SessionKeyRevoked(address indexed trader, address indexed sessionKey);
 
     constructor(
         address _vault,
@@ -95,10 +100,10 @@ contract TapBetManager is Ownable, ReentrancyGuard, Pausable {
         address _multiplierEngine,
         address _usdc
     ) Ownable(msg.sender) {
-        require(_vault != address(0),           "TBM: zero vault");
-        require(_priceAdapter != address(0),    "TBM: zero priceAdapter");
-        require(_multiplierEngine != address(0),"TBM: zero multiplierEngine");
-        require(_usdc != address(0),            "TBM: zero usdc");
+        require(_vault != address(0),            "TBM: zero vault");
+        require(_priceAdapter != address(0),     "TBM: zero priceAdapter");
+        require(_multiplierEngine != address(0), "TBM: zero multiplierEngine");
+        require(_usdc != address(0),             "TBM: zero usdc");
 
         vault            = ITapVault(_vault);
         priceAdapter     = IPriceAdapter(_priceAdapter);
@@ -127,15 +132,31 @@ contract TapBetManager is Ownable, ReentrancyGuard, Pausable {
     function pause()   external onlyOwner { _pause(); }
     function unpause() external onlyOwner { _unpause(); }
 
+    // ─── Session key management ────────────────────────────────────────────────
+
+    /**
+     * @notice Authorize a session key to place bets on your behalf.
+     *         You must also approve this contract to spend your USDC.
+     */
+    function authorizeSessionKey(address sessionKey) external {
+        require(sessionKey != address(0), "TBM: zero session key");
+        require(sessionKey != msg.sender, "TBM: cannot self-authorize");
+        authorizedSessionKeys[msg.sender][sessionKey] = true;
+        emit SessionKeyAuthorized(msg.sender, sessionKey);
+    }
+
+    /**
+     * @notice Revoke a previously authorized session key.
+     */
+    function revokeSessionKey(address sessionKey) external {
+        authorizedSessionKeys[msg.sender][sessionKey] = false;
+        emit SessionKeyRevoked(msg.sender, sessionKey);
+    }
+
     // ─── Place bet ─────────────────────────────────────────────────────────────
 
     /**
-     * @notice Place a bet that `symbol` price will touch `targetPrice` before `expiry`.
-     * @param symbol           keccak256 of asset string (e.g. keccak256("BTC"))
-     * @param targetPrice      8-decimal target price
-     * @param collateral       USDC amount (6 decimals); caller must have approved this contract
-     * @param expiry           Unix timestamp of bet expiry (≤ now+3600)
-     * @param expectedMultiplier  multiplier the UI showed the user (basis 100); validated ±1%
+     * @notice Place a bet directly (msg.sender is the trader).
      */
     function placeBet(
         bytes32 symbol,
@@ -145,6 +166,37 @@ contract TapBetManager is Ownable, ReentrancyGuard, Pausable {
         uint256 expiry,
         uint256 expectedMultiplier
     ) external nonReentrant whenNotPaused returns (uint256 betId) {
+        betId = _placeBetFor(msg.sender, symbol, targetPrice, entryPrice, collateral, expiry, expectedMultiplier);
+    }
+
+    /**
+     * @notice Place a bet on behalf of `trader` using an authorized session key.
+     *         USDC is pulled from `trader` (not msg.sender).
+     *         Payout on win goes to `trader`.
+     * @dev Call `authorizeSessionKey(sessionKey)` and `usdc.approve(betManager, max)` once.
+     */
+    function placeBetFor(
+        address trader,
+        bytes32 symbol,
+        uint256 targetPrice,
+        uint256 entryPrice,
+        uint256 collateral,
+        uint256 expiry,
+        uint256 expectedMultiplier
+    ) external nonReentrant whenNotPaused returns (uint256 betId) {
+        require(authorizedSessionKeys[trader][msg.sender], "TBM: session key not authorized");
+        betId = _placeBetFor(trader, symbol, targetPrice, entryPrice, collateral, expiry, expectedMultiplier);
+    }
+
+    function _placeBetFor(
+        address trader,
+        bytes32 symbol,
+        uint256 targetPrice,
+        uint256 entryPrice,
+        uint256 collateral,
+        uint256 expiry,
+        uint256 expectedMultiplier
+    ) internal returns (uint256 betId) {
         require(targetPrice > 0,                  "TBM: zero target price");
         require(entryPrice  > 0,                  "TBM: zero entry price");
         require(collateral  > 0,                  "TBM: zero collateral");
@@ -155,13 +207,13 @@ contract TapBetManager is Ownable, ReentrancyGuard, Pausable {
             entryPrice, targetPrice, expiry, expectedMultiplier
         );
 
-        betId = _storeBet(symbol, targetPrice, entryPrice, collateral, expiry, actualMultiplier);
+        betId = _storeBet(trader, symbol, targetPrice, collateral, expiry, actualMultiplier, entryPrice);
 
-        usdc.safeTransferFrom(msg.sender, address(vault), collateral);
+        usdc.safeTransferFrom(trader, address(vault), collateral);
         vault.collectCollateral(collateral);
 
         Direction direction = targetPrice >= entryPrice ? Direction.UP : Direction.DOWN;
-        emit BetPlaced(betId, msg.sender, symbol, targetPrice, collateral, actualMultiplier, direction, expiry);
+        emit BetPlaced(betId, trader, symbol, targetPrice, collateral, actualMultiplier, direction, expiry);
     }
 
     function _validateAndGetMultiplier(
@@ -186,19 +238,20 @@ contract TapBetManager is Ownable, ReentrancyGuard, Pausable {
     }
 
     function _storeBet(
+        address trader,
         bytes32 symbol,
         uint256 targetPrice,
-        uint256 entryPrice,
         uint256 collateral,
         uint256 expiry,
-        uint256 actualMultiplier
+        uint256 actualMultiplier,
+        uint256 entryPrice
     ) internal returns (uint256 betId) {
         Direction direction = targetPrice >= entryPrice ? Direction.UP : Direction.DOWN;
 
         betId = nextBetId++;
         bets[betId] = Bet({
             betId:       betId,
-            user:        msg.sender,
+            user:        trader,
             symbol:      symbol,
             targetPrice: targetPrice,
             collateral:  collateral,
@@ -208,20 +261,13 @@ contract TapBetManager is Ownable, ReentrancyGuard, Pausable {
             status:      BetStatus.ACTIVE,
             placedAt:    block.timestamp
         });
-        userBets[msg.sender].push(betId);
+        userBets[trader].push(betId);
         activeBetIds.push(betId);
     }
 
     // ─── Settle win ────────────────────────────────────────────────────────────
 
-    /**
-     * @notice Trusted settlement by designated solver. No proof required — solver monitors
-     *         Pyth prices directly and is trusted to only call when win condition is met.
-     * @param betId  ID of the bet to settle as won
-     */
-    function settleBetWin(
-        uint256 betId
-    ) external nonReentrant onlySettler {
+    function settleBetWin(uint256 betId) external nonReentrant onlySettler {
         Bet storage bet = bets[betId];
         require(bet.betId == betId && bet.user != address(0), "TBM: bet not found");
         require(bet.status == BetStatus.ACTIVE, "TBM: not active");
@@ -231,7 +277,6 @@ contract TapBetManager is Ownable, ReentrancyGuard, Pausable {
         _removeFromActive(betId);
 
         uint256 totalPayout = (bet.collateral * bet.multiplier) / 100;
-
         vault.payout(bet.user, totalPayout);
 
         emit BetWon(betId, bet.user, msg.sender, totalPayout, 0);
@@ -239,24 +284,17 @@ contract TapBetManager is Ownable, ReentrancyGuard, Pausable {
 
     // ─── Settle expired ────────────────────────────────────────────────────────
 
-    /**
-     * @notice Mark a single expired bet as EXPIRED. Collateral stays in vault (LP profit).
-     */
     function settleExpired(uint256 betId) external {
         Bet storage bet = bets[betId];
-        require(bet.user != address(0),          "TBM: bet not found");
-        require(bet.status == BetStatus.ACTIVE,  "TBM: not active");
-        require(block.timestamp > bet.expiry,    "TBM: not yet expired");
+        require(bet.user != address(0),         "TBM: bet not found");
+        require(bet.status == BetStatus.ACTIVE, "TBM: not active");
+        require(block.timestamp > bet.expiry,   "TBM: not yet expired");
 
         bet.status = BetStatus.EXPIRED;
         _removeFromActive(betId);
-
         emit BetExpired(betId, bet.user);
     }
 
-    /**
-     * @notice Batch-settle expired bets. Skips ineligible entries rather than reverting.
-     */
     function batchSettleExpired(uint256[] calldata betIds) external {
         for (uint256 i = 0; i < betIds.length; i++) {
             uint256 id = betIds[i];
@@ -267,7 +305,6 @@ contract TapBetManager is Ownable, ReentrancyGuard, Pausable {
 
             bet.status = BetStatus.EXPIRED;
             _removeFromActive(id);
-
             emit BetExpired(id, bet.user);
         }
     }

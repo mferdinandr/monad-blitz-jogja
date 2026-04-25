@@ -6,6 +6,7 @@ import "../src/trading/PriceAdapter.sol";
 import "../src/trading/MultiplierEngine.sol";
 import "../src/trading/TapBetManager.sol";
 import "../src/treasury/TapVault.sol";
+import "../src/token/MockUSDC.sol";
 
 /**
  * @title Deploy
@@ -26,9 +27,11 @@ contract Deploy is Script {
     bytes32 constant MON_PYTH_ID =
         0x0000000000000000000000000000000000000000000000000000000000000000; // update when live
 
+    uint256 constant VAULT_SEED_USDC = 10_000 * 10 ** 6; // 10,000 USDC initial liquidity
+
     function run() external {
-        address pythContract = vm.envAddress("PYTH_CONTRACT");
-        address usdcAddress  = vm.envAddress("USDC_ADDRESS");
+        address pythContract   = vm.envAddress("PYTH_CONTRACT");
+        address usdcAddress    = vm.envAddress("USDC_ADDRESS");
         address settlerAddress = vm.envAddress("SETTLER_ADDRESS");
 
         vm.startBroadcast();
@@ -67,6 +70,13 @@ contract Deploy is Script {
             priceAdapter.setPriceId(keccak256("MON"), MON_PYTH_ID);
         }
         console.log("Price IDs registered: BTC, ETH");
+
+        // ── Seed vault with initial USDC liquidity ──────────────────────────
+        MockUSDC usdc = MockUSDC(usdcAddress);
+        usdc.mint(msg.sender, VAULT_SEED_USDC);
+        usdc.approve(address(vault), VAULT_SEED_USDC);
+        vault.deposit(VAULT_SEED_USDC);
+        console.log("Vault seeded with 10,000 USDC");
 
         vm.stopBroadcast();
 
